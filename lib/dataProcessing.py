@@ -14,6 +14,7 @@ LD_folder = os.path.join(Root_folder, "images/LD")
 Lapla_folder = os.path.join(Root_folder, "images/Lapla")
 HSV_folder = os.path.join(Root_folder, "images/HSV")
 GRAY_folder = os.path.join(Root_folder, "images/GRAY")
+Denoise_folder = os.path.join(Root_folder, "images/Denoise")
 folders = [Canny_folder, Sobel_folder, LD_folder, Lapla_folder, RGB_folder, HSV_folder, GRAY_folder]
 
 class CreateDataSet:
@@ -38,7 +39,7 @@ class CreateDataSet:
         for file in self.files:
             temp_file = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
             # code...
-            canny = cv2.Canny(temp_file, 80, 200)
+            canny = cv2.Canny(temp_file, 50, 200)
             cv2.imwrite(Canny_folder + "/" + file.split("\\")[-1], canny)
 
     def createSobel(self): 
@@ -74,6 +75,13 @@ class CreateDataSet:
             temp_file = cv2.cvtColor(temp_file, cv2.COLOR_BGR2GRAY)
             cv2.imwrite(GRAY_folder + "/" + file.split("\\")[-1], temp_file)
     
+    def createDenoise(self): # with histogram
+        global Denoise_folder
+        for file in self.files:
+            temp_file = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+            image = cv2.fastNlMeansDenoising(temp_file, None)
+            cv2.imwrite(Denoise_folder + "/" + file.split("\\")[-1], image)
+    
     def createStart(self):
         self.files = glob.glob(".\\images\\origin\\*.jpg")
         for file in self.files:
@@ -87,13 +95,14 @@ class CreateDataSet:
         self.createCanny()
         self.createHSV()
         self.createGray()
-        
+        self.createDenoise()
+
 class ORBDetection:
-    def __init__(self, select_folder, class_name="*.jpg") -> None:
+    def __init__(self, select_folder) -> None:
         self.orb_detector = cv2.ORB_create(30000)
         self.cap = cv2.VideoCapture(0)
         # 클래스 변경시 변경.
-        self.match_files = [[cv2.imread(file), file] for file in glob.glob(select_folder + "/" + class_name)]
+        self.match_files = [[cv2.imread(file), file] for file in glob.glob(select_folder + "/*.jpg")]
         self.bf = cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=True)
         # target image features extract
         self.features = []
@@ -102,7 +111,7 @@ class ORBDetection:
             kp2, desc2 = self.orb_detector.detectAndCompute(file, None)
             self.features.append([kp2, desc2, file, filename])
 
-        self.orb_detector = cv2.ORB_create(100)
+        self.orb_detector = cv2.ORB_create(200)
         self.target_fps = 60
         self.stable_stack = []
         self.target_feature = None
@@ -151,7 +160,7 @@ class ORBDetection:
             matches = self.bf.match(self.desc1, desc2)
             matches = sorted(matches, key = lambda x:x.distance)
             res = cv2.drawMatches(frame, self.kp1, file, kp2, matches, None, \
-                flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+                flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
             cv2.namedWindow("res", cv2.WINDOW_NORMAL)
             cv2.imshow("res", res)
             key = cv2.waitKey(1)
@@ -174,12 +183,12 @@ def getSobel(frame):
 
 def getCanny(frame):
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    return cv2.Canny(frame, 80, 200)
+    return cv2.Canny(frame, 50, 200)
 
 def getHSV(frame):
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     return frame
 
 def getGRAY(frame):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
     return frame

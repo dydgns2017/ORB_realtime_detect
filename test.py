@@ -1,13 +1,13 @@
-import cv2
+# %%
+# set module
+import cv2, os, glob
 
-
-orb = cv2.ORB_create(patchSize=100, edgeThreshold=50)
-print(orb.getPatchSize()) 
-print(orb.getDefaultName())
-print(orb.getEdgeThreshold())
-img = cv2.imread(".\\images\\Canny\\class_A_0.jpg", 1)
-kp, des = orb.detectAndCompute(img, None)
-dimg = cv2.drawKeypoints(img, kp, None)
-cv2.imshow("dimg", dimg)
+# %%
+# set target images
+files = glob.glob("./images/RGB/*.jpg")
+chans = cv2.split(cv2.cvtColor(cv2.imread(files[9]), cv2.COLOR_BGR2RGB))
+rgb = ["r", "g", "b"]
+for i in range(0, 3):
+    cv2.imshow(rgb[i], chans[i])
 cv2.waitKey(0)
 cv2.destroyAllWindows()
